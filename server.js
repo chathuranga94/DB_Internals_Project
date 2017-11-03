@@ -1,15 +1,17 @@
 var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+mongoose.connect('mongodb://localhost:27018/user_db', { useMongoClient: true });
+mongoose.Promise = global.Promise;
 
-mongoose.connect('mongodb://localhost:27018/user_db');
+//var Schema = mongoose.Schema;
 
-var userSchema = new Schema({
+var userSchema = mongoose.Schema({
   name: String,
   user_id: { type: Number, required: true, unique: true },
 });
 
 var User = mongoose.model('User', userSchema);
 
+/*
 // create a new user
 var newUser = User({
   name: 'Peter Quill',
@@ -23,18 +25,17 @@ newUser.save(function(err) {
   console.log('User created!');
 });
 
-
 User.find({}, function(err, users) {
   if (err) throw err;
 
   // object of all the users
   console.log(users);
 });
+*/
 
-
-User.find({ user_id:'3232'}, function(err, user) {
+User.find({ user_id:'3232'}, function(err, users) {
   if (err) throw err;
 
-  console.log('FIND BY ID');  
-  console.log(user);
+  console.log('FIND BY ID??? NOT _id');  
+  console.log(users);
 });

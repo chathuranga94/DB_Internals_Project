@@ -1,0 +1,3 @@
+mongod --storageEngine inMemory --dbpath C:\data\cache\db --inMemorySizeGB 1 --port 27018
+
+mongod --port 27019
