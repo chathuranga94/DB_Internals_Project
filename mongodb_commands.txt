@@ -1,3 +1,21 @@
-mongod --storageEngine inMemory --dbpath C:\data\cache\db --inMemorySizeGB 1 --port 27018
+IN MongoDB Enterprise Edition
 
-mongod --port 27019
+    mongod --storageEngine inMemory --dbpath C:\data\cache\db --inMemorySizeGB 1 --port 27018
+
+    mongod --port 27019
+
+
+
+=============================================================================================
+    
+    https://docs.mongodb.com/manual/core/inmemory/ 
+    https://dzone.com/articles/how-use-mongodb-pure-memory-db
+    https://stackoverflow.com/questions/32906467/mongoose-multiple-connections 
+
+    Mongoose findById() use user_id rather than _id
+    Mongoose promises   http://mongoosejs.com/docs/promises.html
+    https://scotch.io/tutorials/using-mongoosejs-in-node-js-and-mongodb-applications
+
+    https://scalegrid.io/blog/comparing-in-memory-databases-redis-vs-mongodb-percona-memory-engine/ 
+
+    Limit   Number of documents in collection       caching policy: LRU

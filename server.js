@@ -1,41 +1,64 @@
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27018/user_db', { useMongoClient: true });
+var cache = mongoose.connect('mongodb://localhost:27018/user_db', { useMongoClient: true });
+var db = mongoose.connect('mongodb://localhost:27019/user_db', { useMongoClient: true });
 mongoose.Promise = global.Promise;
-
-//var Schema = mongoose.Schema;
 
 var userSchema = mongoose.Schema({
   name: String,
-  user_id: { type: Number, required: true, unique: true },
+  user_id: Number /*{ type: Number, required: true, unique: true },*/
 });
+var db_user = db.model('db_user', userSchema);
+var cache_user = cache.model('cache_user', userSchema);
 
-var User = mongoose.model('User', userSchema);
+var getUser = function(userId){
 
-/*
-// create a new user
-var newUser = User({
-  name: 'Peter Quill',
-  user_id: 3232
-});
+    cache_user.findOne({ user_id: userId }, function(err, user) {
+        if (err) throw err;
+        else if (user) {
+            console.log('cache_user found');        //else if (user) return user;
+            return user;
+        }
+        else {
+            db_user.find({}, function(err, users) {
+                if (err) throw err;
+                console.log(users);
+            });
 
-// save the user
-newUser.save(function(err) {
-  if (err) throw err;
+            /*
+            db_user.findOne({ user_id: userId }, function(err,user){
+                console.log(user);
+                if (err) throw err;
+                else if (user) {
+                    console.log('db_user found');
+                    new cache_user(user).save(function(err){
+                        if (err) throw err;
+                        console.log('cache_user created'); 
+                        return user;
+                    });
+                    // return user;
+                }
+            })
+            */ 
+        }
+    });
 
-  console.log('User created!');
-});
+    console.log("getUser() ended...");
+};
 
-User.find({}, function(err, users) {
-  if (err) throw err;
+var createUser = function(user){
 
-  // object of all the users
-  console.log(users);
-});
-*/
+    new db_user({
+    name: user.name,
+    user_id: user.user_id
+    }).save(function(err) {
+        if (err) throw err;
+        console.log('db_user created');
+    });
 
-User.find({ user_id:'3232'}, function(err, users) {
-  if (err) throw err;
+};
 
-  console.log('FIND BY ID??? NOT _id');  
-  console.log(users);
-});
+//  findOne      findById        find        findAll
+
+var user = {name: 'Udara',user_id: 100};
+createUser(user);
+getUser(100);
