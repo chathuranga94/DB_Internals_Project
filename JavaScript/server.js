@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
-var cache = mongoose.connect('mongodb://localhost:27018/user_db', { useMongoClient: true });
-var db = mongoose.connect('mongodb://localhost:27019/user_db', { useMongoClient: true });
+var cache = mongoose.connect('mongodb://localhost:27018/userdb', { useMongoClient: true });
+var db = mongoose.connect('mongodb://localhost:27020/userdb', { useMongoClient: true });
 mongoose.Promise = global.Promise;
 
 var userSchema = mongoose.Schema({
@@ -10,7 +10,8 @@ var userSchema = mongoose.Schema({
 var db_user = db.model('db_user', userSchema);
 var cache_user = cache.model('cache_user', userSchema);
 
-var getUser = function(userId){
+/*
+let getUser = async (userId) => {
 
     cache_user.findOne({ user_id: userId }, function(err, user) {
         if (err) throw err;
@@ -19,12 +20,10 @@ var getUser = function(userId){
             return user;
         }
         else {
-            db_user.find({}, function(err, users) {
-                if (err) throw err;
-                console.log(users);
-            });
 
-            /*
+            console.log(await db_user.find({}))
+
+            
             db_user.findOne({ user_id: userId }, function(err,user){
                 console.log(user);
                 if (err) throw err;
@@ -37,13 +36,21 @@ var getUser = function(userId){
                     });
                     // return user;
                 }
-            })
-            */ 
+            });
+            
         }
     });
 
     console.log("getUser() ended...");
 };
+*/
+
+let getInfo = async (userId) => {
+ //console.log(await cache_user.findOne({ user_id: userId }))
+ console.log(await db_user.find({}))
+ return 'all done';
+}
+
 
 var createUser = function(user){
 
@@ -60,5 +67,51 @@ var createUser = function(user){
 //  findOne      findById        find        findAll
 
 var user = {name: 'Udara',user_id: 100};
-createUser(user);
-getUser(100);
+//createUser(user);
+//console.log(getUser(100));
+
+//console.log(getInfo(100));
+//getInfo(100);
+
+/*
+db_user.find({}, function(err, users) {
+    if (err) throw err;
+    console.log(users);
+});
+*/
+
+
+/*
+var query = db_user.find({});
+
+var promise = query.exec();
+promise.then(function(doc){
+    console.log("QUERY...");
+    console.log(doc);
+});
+*/
+
+let get_func = async(userId) => {
+
+        let is_cached = await cache_user.findOne({ user_id: userId }).exec();
+
+        if(!is_cached){
+            console.log("NOT CACHIED");
+            let is_dbuser = await db_user.find({}).exec();
+            console.log(is_dbuser);
+
+        } else {
+            console.log("CACHED");
+        }
+
+        console.log("LEAVING get_func")
+};
+
+get_func(100);
+
+/*
+db_user.find({}, function(err, users) {
+    if (err) throw err;
+    console.log(users);
+});
+*/
