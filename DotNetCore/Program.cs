@@ -88,7 +88,7 @@ namespace DotNetCore
 
             List<int> getId_List = new List<int>();
             
-            for(int id=0; id<100000; id++){
+            for(int times=0; times<100000; times++){
                 int random = rnd.Next(1, 100);
                 //  Console.Write(random + " ");
                 getId_List.Add(random);
@@ -116,7 +116,7 @@ namespace DotNetCore
                 GetUser_NoCache(id);
             }
             sw.Stop();
-            Console.WriteLine("GET USER NO CACHE TIME => {0}",sw.Elapsed);
+            Console.WriteLine("\nNO CACHE TIME => {0}",sw.Elapsed);
             Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
 
             InDB = 0;   InCACHE = 0;
@@ -125,7 +125,7 @@ namespace DotNetCore
                 GetUser_WithCache(id);
             }
             sw.Stop();
-            Console.WriteLine("GET USER CACHE TIME => {0}",sw.Elapsed);
+            Console.WriteLine("\nMongoDB In-Memory CACHE TIME => {0}",sw.Elapsed);
             Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
 
             InDB = 0;   InCACHE = 0;
@@ -134,7 +134,7 @@ namespace DotNetCore
                 GetUser_RedisCache(id);
             }
             sw.Stop();
-            Console.WriteLine("GET USER REDIS CACHE TIME => {0}",sw.Elapsed);
+            Console.WriteLine("\nRedis CACHE TIME => {0}",sw.Elapsed);
             Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
         }
 
@@ -243,10 +243,11 @@ namespace DotNetCore
             return true;
         }
 
+        /*
         public class User : BsonDocument{
             public string user_name;
             public int user_id;
         }
-        
+        */
     }
 }
