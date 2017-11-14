@@ -27,14 +27,11 @@ namespace DotNetCore
 
         private static RedisCache _redis_cache;
 
-
-
         public static int InCACHE;
         public static int InDB;
 
         static void Main(string[] args)
         {
-            Test();
 
             _dbClient = new MongoClient("mongodb://localhost:27020");
             _db = _dbClient.GetDatabase("userdb");
@@ -81,6 +78,55 @@ namespace DotNetCore
                 Console.WriteLine(document);   
             }
             */
+
+            int N=10000;
+            Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
+            int[] opArray=test.Item1;
+            int[] idxArray=test.Item2;
+            /*
+            int[] count=new int[4];
+            for (int i = 0; i < N; i++)
+            {
+                count[opArray[i]]++;
+                Console.WriteLine("Operation: {0} : UserId: {1}",opArray[i],idxArray[i]);
+            }
+
+            Console.WriteLine("Insert: {0}",count[0]);
+            Console.WriteLine("Update: {0}",count[1]);
+            Console.WriteLine("Delete: {0}",count[2]);
+            Console.WriteLine("Find: {0}",count[3]);
+            */
+            TimeSpan fullTime = TimeSpan.Zero;
+            Stopwatch stopWatch = new Stopwatch();
+
+
+            for(int index = 0; index < opArray.Length; index++){
+
+                if(opArray[index]==0){
+                    var new_user_document = new BsonDocument{ { "name", "user" + idxArray[index] }, { "user_id", idxArray[index] }};
+                    stopWatch.Start();
+                    AddUser(new_user_document);
+                    stopWatch.Stop();
+                }
+                else if(opArray[index]==1){
+                    stopWatch.Start();
+                    UpdateUser_NoCache(idxArray[index]);
+                    stopWatch.Stop();
+                }
+                else if(opArray[index]==2){
+                    stopWatch.Start();
+                    DeleteUser_NoCache(idxArray[index]);
+                    stopWatch.Stop();
+                }
+                else if(opArray[index]==3){
+                    stopWatch.Start();
+                    GetUser_NoCache(idxArray[index]);
+                    stopWatch.Stop();
+                }
+                TimeSpan timeElapsed = stopWatch.Elapsed;
+                Console.WriteLine(timeElapsed.TotalMilliseconds);
+            }
+
 
             Random rnd = new Random();
             int getIndexes = rnd.Next(1, 100);
@@ -435,24 +481,7 @@ namespace DotNetCore
             Shuffle(ops, idx);
             return Tuple.Create(ops, idx);
         }
-        public static void Test()
-        {
-            int N=100000;
-            Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
-            int[] opArray=test.Item1;
-            int[] idxArray=test.Item2;
-            int[] count=new int[4];
-            for (int i = 0; i < N; i++)
-            {
-                count[opArray[i]]++;
-                Console.WriteLine("Operation: {0} : UserId: {1}",opArray[i],idxArray[i]);
-            }
-            Console.WriteLine("Insert: {0}",count[0]);
-            Console.WriteLine("Update: {0}",count[1]);
-            Console.WriteLine("Delete: {0}",count[2]);
-            Console.WriteLine("Find: {0}",count[3]);
-        }
-
+        
         public static String GetTimestamp(DateTime value) {
             return value.ToString("yyyyMMddHHmmssffff");
         }
