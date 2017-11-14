@@ -2,9 +2,9 @@ IN MongoDB Enterprise Edition
 
     mongod --storageEngine inMemory --dbpath C:\data\cache\db --inMemorySizeGB 1 --port 27018
 
-    mongod --port 27019
-
-
+    mongod --port 27020
+mongod --storageEngine inMemory --dbpath C:\Apps\MongoDB\instances\cache\db --inMemorySizeGB 1 --port 27018
+C:\Apps\MongoDB\Server\3.4\bin
 
 =============================================================================================
     

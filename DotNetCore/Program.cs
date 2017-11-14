@@ -34,6 +34,7 @@ namespace DotNetCore
 
         static void Main(string[] args)
         {
+            Test();
 
             _dbClient = new MongoClient("mongodb://localhost:27020");
             _db = _dbClient.GetDatabase("userdb");
@@ -79,7 +80,7 @@ namespace DotNetCore
             {
                 Console.WriteLine(document);   
             }
-    */
+            */
 
             Random rnd = new Random();
             int getIndexes = rnd.Next(1, 100);
@@ -96,9 +97,10 @@ namespace DotNetCore
 
             Stopwatch sw = new Stopwatch();
 
-            /* 
+
             sw.Start();
-            for(int id=1 ; id<=1000; id++){
+            for (int id = 1; id <= 1000; id++)
+            {
                 var new_doc = new BsonDocument
                 {
                     { "name", "bibi"+id },
@@ -107,17 +109,18 @@ namespace DotNetCore
                 AddUser(new_doc);
             }
             sw.Stop();
-            Console.WriteLine("ADD USER TIME: {0}",sw.Elapsed);
-            */
+            Console.WriteLine("ADD USER TIME: {0}", sw.Elapsed);
+
 
             InDB = 0; InCACHE = 0;
             sw.Start();
             foreach (int id in getId_List)
             {
-                GetUser_RedisCache(id);
-                GetUser_NoCache(id);
-                GetUser_WithCache(id);
+                //GetUser_RedisCache(id);
+                //GetUser_NoCache(id);
+                //GetUser_WithCache(id);
                 //GetUserAsync_WithCache(id);
+                DeleteUser_RedisCache(id);
             }
             sw.Stop();
             Console.WriteLine("\nTIME => {0}", sw.Elapsed);
@@ -397,6 +400,57 @@ namespace DotNetCore
                 Console.WriteLine("Error");
             }
             return true;
+        }
+        public static void Shuffle<T>(T[] ops, T[] idx)
+        {
+            Random rng = new Random();
+            int n = ops.Length;
+            while (n > 1)
+            {
+                int k = rng.Next(n--);
+                T temp = ops[n];
+                ops[n] = ops[k];
+                ops[k] = temp;
+                T temp2 = idx[n];
+                idx[n] = idx[k];
+                idx[k] = temp2;
+            }
+        }
+        public static Tuple<int[], int[]> CreateOperationsList(int N, float insertRatio, float updateRatio, float deleteRatio)
+        {
+            /*
+            0 insert,            1 update,            2 delete,            3 find
+             */
+            int insertEnd = (int)(N * insertRatio);
+            int updateEnd = insertEnd + (int)(N * updateRatio);
+            int deleteEnd = updateEnd + (int)(N * deleteRatio);
+
+            int[] ops = new int[N];
+            int[] idx = new int[N];
+            for (int i = 0; i < N; i++)
+            {
+                if (i < insertEnd) ops[i] = 0; else if (i < updateEnd) ops[i] = 1; else if (i < deleteEnd) ops[i] = 2; else ops[i] = 3;
+                idx[i] = (i < insertEnd) ? i : i % insertEnd;
+            }
+            Shuffle(ops, idx);
+            return Tuple.Create(ops, idx);
+        }
+        public static void Test()
+        {
+            int N=100000;
+            Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
+            int[] opArray=test.Item1;
+            int[] idxArray=test.Item2;
+            int[] count=new int[4];
+            for (int i = 0; i < N; i++)
+            {
+                count[opArray[i]]++;
+                Console.WriteLine("Operation: {0} : UserId: {1}",opArray[i],idxArray[i]);
+            }
+            Console.WriteLine("Insert: {0}",count[0]);
+            Console.WriteLine("Update: {0}",count[1]);
+            Console.WriteLine("Delete: {0}",count[2]);
+            Console.WriteLine("Find: {0}",count[3]);
         }
 
         public static String GetTimestamp(DateTime value) {
