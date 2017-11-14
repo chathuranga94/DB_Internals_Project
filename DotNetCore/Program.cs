@@ -1,7 +1,7 @@
 ﻿using System;
 using MongoDB.Bson;
 using MongoDB.Driver;
-
+using MongoDB.Bson.Serialization;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,6 @@ using System.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Redis;
 using System.Text;
-
 
 namespace DotNetCore
 {
@@ -81,7 +80,7 @@ namespace DotNetCore
             {
                 Console.WriteLine(document);   
             }
-    */
+            */
 
             Random rnd = new Random();
             int getIndexes = rnd.Next(1, 100);
@@ -273,12 +272,65 @@ namespace DotNetCore
             return true;
         }
 
-        /* 
-        public class User : BsonDocument{
-            public string user_name;
-            public int user_id;
+        public static BsonDocument UpdateUser_RedisCache(int user_id){
+            //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
+            String timestamp = GetTimestamp(DateTime.Now);
+            var _InREDIS = _redis_cache.Get(user_id.ToString());
+            if (_InREDIS != null) {
+                InCACHE++;
+                _redis_cache.Remove(user_id.ToString());
+                String user = Encoding.UTF8.GetString(_InREDIS);
+                BsonDocument db_user = BsonSerializer.Deserialize<BsonDocument>(user);
+                db_user.Add("updated_at", timestamp);
+                user = db_user.ToString();
+                _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(user), new DistributedCacheEntryOptions());
+            }
+            
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            var update = Builders<BsonDocument>.Update.Set("updated_at", timestamp);
+
+            var db_update_result = _dbUser.UpdateOne(filter, update);
+            
+            if(_InREDIS == null)
+            {
+                InDB += (int)db_update_result.ModifiedCount;
+            } 
+            return db_update_result.ToBsonDocument();
         }
-        */
+
+        public static BsonDocument UpdateUser_WithCache(int user_id){
+            //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            var update = Builders<BsonDocument>.Update.Set("updated_at", GetTimestamp(DateTime.Now));
+            
+            var cache_update_result = _cacheUser.UpdateOne(filter, update);
+            var db_update_result = _dbUser.UpdateOne(filter, update);
+            
+            if(cache_update_result.ModifiedCount > 0)
+            {
+                InCACHE += (int)cache_update_result.ModifiedCount;
+                //  Console.WriteLine("IN THE CACHE...\n");
+                return cache_update_result.ToBsonDocument();  //.ToList() and .Count
+            } 
+            else
+            {
+                InDB += (int)db_update_result.ModifiedCount;
+                //  Console.WriteLine("NOT IN THE CACHE...");
+                return db_update_result.ToBsonDocument();
+            }
+        }
+
+        public static BsonDocument UpdateUser_NoCache(int user_id){
+            //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            var update = Builders<BsonDocument>.Update.Set("updated_at", GetTimestamp(DateTime.Now));
+            
+            var update_result = _dbUser.UpdateOne(filter, update);
+            
+            InDB += (int)update_result.ModifiedCount;
+            return update_result.ToBsonDocument();  
+        }
+
         public static Boolean DeleteUser_WithCache(int user_id)
         {
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
@@ -303,6 +355,7 @@ namespace DotNetCore
             }
             return true;
         }
+
         public static Boolean DeleteUser_NoCache(int user_id)
         {
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
@@ -321,6 +374,7 @@ namespace DotNetCore
             }
             return true;
         }
+
         public static Boolean DeleteUser_RedisCache(int user_id)
         {
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
@@ -398,5 +452,16 @@ namespace DotNetCore
             Console.WriteLine("Delete: {0}",count[2]);
             Console.WriteLine("Find: {0}",count[3]);
         }
+
+        public static String GetTimestamp(DateTime value) {
+            return value.ToString("yyyyMMddHHmmssffff");
+        }
+
+        /* 
+        public class User : BsonDocument{
+            public string user_name;
+            public int user_id;
+        }
+        */
     }
 }
