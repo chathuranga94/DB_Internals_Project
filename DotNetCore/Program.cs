@@ -30,22 +30,22 @@ namespace DotNetCore
 
 
 
-        public static int InCACHE; 
+        public static int InCACHE;
         public static int InDB;
-        
+
         static void Main(string[] args)
         {
-            
+
             _dbClient = new MongoClient("mongodb://localhost:27020");
             _db = _dbClient.GetDatabase("userdb");
             _dbUser = _db.GetCollection<BsonDocument>("db_users");
-            
+
             _cacheClient = new MongoClient("mongodb://localhost:27018");
             _cache = _cacheClient.GetDatabase("userdb");
             _cacheUser = _cache.GetCollection<BsonDocument>("db_users");
 
             _redis_cache = new RedisCache(new RedisCacheOptions
-                {   Configuration = "localhost",  InstanceName = "db_users" }
+            { Configuration = "localhost", InstanceName = "db_users" }
             );
 
 
@@ -74,25 +74,26 @@ namespace DotNetCore
                     _cacheUser.InsertOne(new_user);
                     */
 
-                    /* 
-                    var cursor = collection.Find(new BsonDocument()).ToCursor();
-                    foreach (var document in cursor.ToEnumerable())
-                    {
-                        Console.WriteLine(document);   
-                    }
-            */
+            /* 
+            var cursor = collection.Find(new BsonDocument()).ToCursor();
+            foreach (var document in cursor.ToEnumerable())
+            {
+                Console.WriteLine(document);   
+            }
+    */
 
             Random rnd = new Random();
-            int getIndexes = rnd.Next(1, 100); 
+            int getIndexes = rnd.Next(1, 100);
             int setIndexes = rnd.Next(1, 1000);
 
             List<int> getId_List = new List<int>();
-            
-            for(int times=0; times<100000; times++){
+
+            for (int times = 0; times < 10000; times++)
+            {
                 int random = rnd.Next(1, 100);
                 //  Console.Write(random + " ");
                 getId_List.Add(random);
-            }  
+            }
 
             Stopwatch sw = new Stopwatch();
 
@@ -110,86 +111,78 @@ namespace DotNetCore
             Console.WriteLine("ADD USER TIME: {0}",sw.Elapsed);
             */
 
-            InDB = 0;   InCACHE = 0;
+            InDB = 0; InCACHE = 0;
             sw.Start();
-            foreach(int id in getId_List){
-                GetUser_NoCache(id);
-            }
-            sw.Stop();
-            Console.WriteLine("\nNO CACHE TIME => {0}",sw.Elapsed);
-            Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
-
-            InDB = 0;   InCACHE = 0;
-            sw.Start();
-            foreach(int id in getId_List){
-                GetUser_WithCache(id);
-            }
-            sw.Stop();
-            Console.WriteLine("\nMongoDB In-Memory CACHE TIME => {0}",sw.Elapsed);
-            Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
-
-            InDB = 0;   InCACHE = 0;
-            sw.Start();
-            foreach(int id in getId_List){
+            foreach (int id in getId_List)
+            {
                 GetUser_RedisCache(id);
+                GetUser_NoCache(id);
+                GetUser_WithCache(id);
+                //GetUserAsync_WithCache(id);
             }
             sw.Stop();
-            Console.WriteLine("\nRedis CACHE TIME => {0}",sw.Elapsed);
+            Console.WriteLine("\nTIME => {0}", sw.Elapsed);
             Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
+
+
+            /*
+            InDB = 0;   InCACHE = 0;
+            sw.Start();
+            foreach(int id in getId_List){
+                 GetUserAsync_WithCache(id);
+            }
+            sw.Stop();
+            Console.WriteLine("\nMongoDB In-Memory CACHE : AsyncGET and SyncSET ::: TIME => {0}",sw.Elapsed);
+            Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
+            */
         }
 
-        public static String GetUser_RedisCache(int user_id){
-
-            //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
-
+        public static BsonDocument GetUser_RedisCache(int user_id)
+        {
             var _InREDIS = _redis_cache.Get(user_id.ToString());
-            if(_InREDIS != null)
+            if (_InREDIS != null)
             {
                 InCACHE++;
-                //  Console.WriteLine("IN THE CACHE...\n");
-                return Encoding.UTF8.GetString(_InREDIS); 
-            } 
-            else 
+                return Encoding.UTF8.GetString(_InREDIS).ToBsonDocument();
+            }
+            else
             {
-                //  Console.WriteLine("NOT IN THE CACHE...");
                 var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
                 var db_query = _dbUser.Find(filter);
-                if( (int)db_query.Count()>0)
+                if ((int)db_query.Count() > 0)
                 {
                     InDB++;
                     String db_user_str = db_query.First().ToString();
-                    //  Console.WriteLine("IN THE DATABASE...");
                     _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(db_user_str), new DistributedCacheEntryOptions());
-                    //  Console.WriteLine("ADDED TO THE CACHE...\n");
-                    return db_user_str;
+                    return db_user_str.ToBsonDocument();
                 }
-                else 
+                else
                 {
-                    //  Console.WriteLine("NOT IN THE DATABASE AS WELL...\n");
-                    return "";
+                    return new BsonDocument();
                 }
             }
         }
 
-        public static BsonDocument GetUser_WithCache(int user_id){
+        public static BsonDocument GetUser_WithCache(int user_id)
+        {
 
             //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
 
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var cache_query = _cacheUser.Find(filter);
 
-            if((int)cache_query.Count()>0)
+            if ((int)cache_query.Count() > 0)
             {
                 InCACHE++;
                 //  Console.WriteLine("IN THE CACHE...\n");
                 return cache_query.First();  //.ToList() and .Count
-            } 
-            else 
+            }
+            else
             {
                 InDB++;
                 //  Console.WriteLine("NOT IN THE CACHE...");
                 var db_query = _dbUser.Find(filter);
-                if( (int)db_query.Count()>0)
+                if ((int)db_query.Count() > 0)
                 {
                     //  Console.WriteLine("IN THE DATABASE...");
                     _cacheUser.InsertOne(db_query.First());
@@ -207,7 +200,7 @@ namespace DotNetCore
                     _cacheUser.InsertOne(new_user_doc);
                     */
                 }
-                else 
+                else
                 {
                     //  Console.WriteLine("NOT IN THE DATABASE AS WELL...\n");
                     return new BsonDocument();
@@ -216,38 +209,140 @@ namespace DotNetCore
             // ??? return new BsonDocument();
         }
 
-        public static BsonDocument GetUser_NoCache(int user_id){
+        public static BsonDocument GetUser_NoCache(int user_id)
+        {
 
             //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
 
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var db_query = _dbUser.Find(filter);
 
-            if((int)db_query.Count()>0)
+            if ((int)db_query.Count() > 0)
             {
                 InDB++;
                 //  Console.WriteLine("IN THE DATABASE...\n");
-                return db_query.First();  
-            } 
-            else 
+                return db_query.First();
+            }
+            else
             {
                 //  Console.WriteLine("NOT IN THE DATABASE...\n");
                 return new BsonDocument();
             }
         }
 
-        public static Boolean AddUser(BsonDocument new_user){
+        public static async Task<BsonDocument> GetUserAsync_WithCache(int user_id)
+        {
+
+            Console.WriteLine("\nASYNC CALL: " + user_id);
+
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            var cache_query = await _cacheUser.FindAsync(filter);   // FindAsync vs Find(filter).ToListAsync();  // ??? Find(filter).FirstAsync()
+
+            if ((int)cache_query.ToList().Count > 0)
+            {
+                InCACHE++;
+
+                Console.WriteLine("IN CACHE: ASYNC CALL ENDS..." + user_id);
+                return cache_query.First();
+            }
+            else
+            {
+                var db_query = await _dbUser.FindAsync(filter);
+                if ((int)db_query.ToList().Count > 0)
+                {
+                    InDB++;
+                    _cacheUser.InsertOne(db_query.First());
+                    Console.WriteLine("IN DB: ASYNC CALL ENDS..." + user_id);
+                    return db_query.First();
+                }
+                else
+                {
+                    return new BsonDocument();
+                }
+            }
+        }
+
+        public static Boolean AddUser(BsonDocument new_user)
+        {
 
             _dbUser.InsertOne(new_user);
 
             return true;
         }
 
-        /*
+        /* 
         public class User : BsonDocument{
             public string user_name;
             public int user_id;
         }
         */
+        public static Boolean DeleteUser_WithCache(int user_id)
+        {
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            try
+            {
+                var _dbQuery = _dbUser.DeleteOne(filter);
+                if (_dbQuery.IsAcknowledged && _dbQuery.DeletedCount == 1)
+                {
+                    //Console.WriteLine("\nDeleted user {0} from db.", user_id);
+                    InDB--;
+                    var _cacheQuery = _cacheUser.DeleteOne(filter);
+                    if (_cacheQuery.IsAcknowledged && _cacheQuery.DeletedCount == 1)
+                    {
+                        InCACHE--;
+                        //Console.WriteLine("\nDeleted user {0} from cache.", user_id);
+                    }
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error");
+            }
+            return true;
+        }
+        public static Boolean DeleteUser_NoCache(int user_id)
+        {
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            try
+            {
+                var _dbQuery = _dbUser.DeleteOne(filter);
+                if (_dbQuery.IsAcknowledged && _dbQuery.DeletedCount == 1)
+                {
+                    InDB--;
+                    //Console.WriteLine("\nDeleted user {0} from db.", user_id);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error");
+            }
+            return true;
+        }
+        public static Boolean DeleteUser_RedisCache(int user_id)
+        {
+            var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
+            try
+            {
+                var _dbQuery = _dbUser.DeleteOne(filter);
+                if (_dbQuery.IsAcknowledged && _dbQuery.DeletedCount == 1)
+                {
+                    //Console.WriteLine("\nDeleted user {0} from db.", user_id);
+                    InDB--;
+                    var _cacheQuery = _cacheUser.DeleteOne(filter);
+                    var _InREDIS = _redis_cache.Get(user_id.ToString());
+                    if (_InREDIS != null)
+                    {
+                        InCACHE--;
+                        _redis_cache.Remove(user_id.ToString());
+                        //Console.WriteLine("\nDeleted user {0} from redis cache.", user_id);
+                    }
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Error");
+            }
+            return true;
+        }
     }
 }
