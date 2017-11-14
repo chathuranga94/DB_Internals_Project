@@ -137,36 +137,28 @@ namespace DotNetCore
             */
         }
 
-        public static String GetUser_RedisCache(int user_id)
+        public static BsonDocument GetUser_RedisCache(int user_id)
         {
-
-            //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
-
             var _InREDIS = _redis_cache.Get(user_id.ToString());
             if (_InREDIS != null)
             {
                 InCACHE++;
-                //  Console.WriteLine("IN THE CACHE...\n");
-                return Encoding.UTF8.GetString(_InREDIS);
+                return Encoding.UTF8.GetString(_InREDIS).ToBsonDocument();
             }
             else
             {
-                //  Console.WriteLine("NOT IN THE CACHE...");
                 var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
                 var db_query = _dbUser.Find(filter);
                 if ((int)db_query.Count() > 0)
                 {
                     InDB++;
                     String db_user_str = db_query.First().ToString();
-                    //  Console.WriteLine("IN THE DATABASE...");
                     _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(db_user_str), new DistributedCacheEntryOptions());
-                    //  Console.WriteLine("ADDED TO THE CACHE...\n");
-                    return db_user_str;
+                    return db_user_str.ToBsonDocument();
                 }
                 else
                 {
-                    //  Console.WriteLine("NOT IN THE DATABASE AS WELL...\n");
-                    return "";
+                    return new BsonDocument();
                 }
             }
         }
@@ -237,7 +229,6 @@ namespace DotNetCore
                 return new BsonDocument();
             }
         }
-
 
         public static async Task<BsonDocument> GetUserAsync_WithCache(int user_id)
         {
