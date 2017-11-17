@@ -278,11 +278,8 @@ namespace DotNetCore
             var update = Builders<BsonDocument>.Update.Set("updated_at", timestamp);
 
             var db_update_result = _dbUser.UpdateOne(filter, update);
-            
-            if(_InREDIS == null)
-            {
-                DB_Access += (int)db_update_result.ModifiedCount;
-            } 
+            DB_Access += (int)db_update_result.ModifiedCount;
+
             return db_update_result.ToBsonDocument();
         }
 
@@ -294,15 +291,16 @@ namespace DotNetCore
             var cache_update_result = _cacheUser.UpdateOne(filter, update);
             var db_update_result = _dbUser.UpdateOne(filter, update);
             
+            CACHE_Access += (int)cache_update_result.ModifiedCount;
+            DB_Access += (int)db_update_result.ModifiedCount;
+
             if(cache_update_result.ModifiedCount > 0)
             {
-                CACHE_Access += (int)cache_update_result.ModifiedCount;
                 //  Console.WriteLine("IN THE CACHE...\n");
                 return cache_update_result.ToBsonDocument();  //.ToList() and .Count
             } 
             else
             {
-                DB_Access += (int)db_update_result.ModifiedCount;
                 //  Console.WriteLine("NOT IN THE CACHE...");
                 return db_update_result.ToBsonDocument();
             }
