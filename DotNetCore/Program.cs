@@ -30,6 +30,11 @@ namespace DotNetCore
         public static int CACHE_Access;
         public static int DB_Access;
 
+        public static int MODE;
+        public const int NO_CACHE = 0;
+        public const int MONGO_CACHE = 1;
+        public const int REDIS_CACHE = 2;
+        public static int USER_COUNT;
         static void Main(string[] args)
         {
 
@@ -46,54 +51,8 @@ namespace DotNetCore
             );
 
             /*******************************************************************/
+            RunTestCases();
 
-            int N=10000;
-            Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
-            int[] opArray=test.Item1;
-            int[] idxArray=test.Item2;
-
-            Stopwatch stopWatch = new Stopwatch();
-            int[] count=new int[4];
-
-            Console.WriteLine("Running {0} records randomly", N);
-            CACHE_Access = 0;
-            DB_Access = 0;
-
-            for(int index = 0; index < opArray.Length; index++){
-
-                if(opArray[index]==0){
-                    var new_user_document = new BsonDocument{ { "name", "user" + idxArray[index] }, { "user_id", idxArray[index] }};
-                    stopWatch.Start();
-                    AddUser(new_user_document);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==1){
-                    stopWatch.Start();
-                    //UpdateUser_NoCache(idxArray[index]);
-                    UpdateUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==2){
-                    stopWatch.Start();
-                    //DeleteUser_NoCache(idxArray[index]);
-                    DeleteUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==3){
-                    stopWatch.Start();
-                    //GetUser_NoCache(idxArray[index]);
-                    GetUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
-
-                count[opArray[index]]++;
-            }
-
-            TimeSpan fullTime = stopWatch.Elapsed;
-
-            Console.WriteLine("FULLTIME: " + fullTime.TotalMilliseconds);
-            Console.WriteLine("Insert:{0}  Update:{1}  Delete:{2}  Find:{3}",count[0], count[1], count[2], count[3]);
-            Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
 
             /*******************************************************************/
 
@@ -138,6 +97,93 @@ namespace DotNetCore
             Console.WriteLine("\nTIME => {0}", stopwatch_get.Elapsed);
             Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
             */
+        }
+
+        private static void RunTestCases()
+        {
+            int[] testLengthArr = { 100, 1000, 10000, 100000 };
+            float[,] ratiosArr = { { 0.04f, 0.02f, 0.02f }, { 0.4f, 0.2f, 0.2f }, { 0.9f, 0.04f, 0.04f }, { 0.25f, 0.25f, 0.25f } };
+            for (int length = 0; length < testLengthArr.Length; length++)
+            {
+                int N = testLengthArr[length];
+                USER_COUNT = N / 10;
+                for (int ratioIndex = 0; ratioIndex <4; ratioIndex++)
+                {
+                    for (MODE = 0; MODE < 2;MODE++)
+                    {
+                        _dbUser = _db.GetCollection<BsonDocument>("db_test");
+                        _cacheUser = _cache.GetCollection<BsonDocument>("db_test");
+                        Console.WriteLine("Test Case: N={0}, MODE: {1}", N, (MODE == NO_CACHE ? "NO CACHE" : MODE == MONGO_CACHE ? "MONGO DB IN MEMMORY CACHE" : "REDIS CACHE"));
+                        Console.WriteLine("Insert ratio: {0}, Update ratio: {1}, Delete ratio: {2}", ratiosArr[ratioIndex, 0], ratiosArr[ratioIndex, 1], ratiosArr[ratioIndex, 2]);
+                        for (int id = 1; id <= USER_COUNT; id++)
+                        {
+                            var new_doc = new BsonDocument
+                            {
+                                { "name", "user"+id },
+                                { "user_id", id }
+                            };
+                            AddUser(new_doc);
+                        }
+                        RunTestCase(N, ratiosArr[ratioIndex, 0], ratiosArr[ratioIndex, 1], ratiosArr[ratioIndex, 2]);
+                        Console.WriteLine("----------------------------------------------------------------------------------------------------------");
+                        _db.DropCollection("db_test");
+                        _cache.DropCollection("db_test");
+                    }
+
+                }
+            }
+        }
+
+        private static void RunTestCase(int N, float insertRatio, float updateRatio, float deleteRatio)
+        {
+            Tuple<int[], int[]> test = CreateOperationsList(N, insertRatio, updateRatio, deleteRatio);
+            int[] opArray = test.Item1;
+            int[] idxArray = test.Item2;
+
+            Stopwatch stopWatch = new Stopwatch();
+            int[] count = new int[4];
+
+            Console.WriteLine("Running {0} records randomly", N);
+            CACHE_Access = 0;
+            DB_Access = 0;
+
+            for (int index = 0; index < opArray.Length; index++)
+            {
+
+                if (opArray[index] == 0)
+                {
+                    var new_user_document = new BsonDocument { { "name", "user" + idxArray[index] }, { "user_id", idxArray[index] } };
+                    stopWatch.Start();
+                    AddUser(new_user_document);
+                    stopWatch.Stop();
+                }
+                else if (opArray[index] == 1)
+                {
+                    stopWatch.Start();
+                    UpdateUser(idxArray[index]);
+                    stopWatch.Stop();
+                }
+                else if (opArray[index] == 2)
+                {
+                    stopWatch.Start();
+                    DeleteUser(idxArray[index]);
+                    stopWatch.Stop();
+                }
+                else if (opArray[index] == 3)
+                {
+                    stopWatch.Start();
+                    GetUser(idxArray[index]);
+                    stopWatch.Stop();
+                }
+
+                count[opArray[index]]++;
+            }
+
+            TimeSpan fullTime = stopWatch.Elapsed;
+
+            Console.WriteLine("FULLTIME: " + fullTime.TotalMilliseconds + "ms");
+            Console.WriteLine("Insert:{0}  Update:{1}  Delete:{2}  Find:{3}", count[0], count[1], count[2], count[3]);
+            Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
         }
 
         public static BsonDocument GetUser_RedisCache(int user_id)
@@ -207,7 +253,7 @@ namespace DotNetCore
         {
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var db_query = _dbUser.Find(filter);
-            
+
             DB_Access++;
             if ((int)db_query.Count() > 0)
             {
@@ -260,11 +306,13 @@ namespace DotNetCore
             return true;
         }
 
-        public static BsonDocument UpdateUser_RedisCache(int user_id){
+        public static BsonDocument UpdateUser_RedisCache(int user_id)
+        {
 
             String timestamp = GetTimestamp(DateTime.Now);
             var _InREDIS = _redis_cache.Get(user_id.ToString());
-            if (_InREDIS != null) {
+            if (_InREDIS != null)
+            {
                 CACHE_Access++;
                 _redis_cache.Remove(user_id.ToString());
                 String user = Encoding.UTF8.GetString(_InREDIS);
@@ -273,7 +321,7 @@ namespace DotNetCore
                 user = db_user.ToString();
                 _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(user), new DistributedCacheEntryOptions());
             }
-            
+
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var update = Builders<BsonDocument>.Update.Set("updated_at", timestamp);
 
@@ -283,22 +331,23 @@ namespace DotNetCore
             return db_update_result.ToBsonDocument();
         }
 
-        public static BsonDocument UpdateUser_WithCache(int user_id){
+        public static BsonDocument UpdateUser_WithCache(int user_id)
+        {
             //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var update = Builders<BsonDocument>.Update.Set("updated_at", GetTimestamp(DateTime.Now));
-            
+
             var cache_update_result = _cacheUser.UpdateOne(filter, update);
             var db_update_result = _dbUser.UpdateOne(filter, update);
-            
+
             CACHE_Access += (int)cache_update_result.ModifiedCount;
             DB_Access += (int)db_update_result.ModifiedCount;
 
-            if(cache_update_result.ModifiedCount > 0)
+            if (cache_update_result.ModifiedCount > 0)
             {
                 //  Console.WriteLine("IN THE CACHE...\n");
                 return cache_update_result.ToBsonDocument();  //.ToList() and .Count
-            } 
+            }
             else
             {
                 //  Console.WriteLine("NOT IN THE CACHE...");
@@ -306,17 +355,17 @@ namespace DotNetCore
             }
         }
 
-        public static BsonDocument UpdateUser_NoCache(int user_id){
+        public static BsonDocument UpdateUser_NoCache(int user_id)
+        {
             //  Console.WriteLine("SEARCH FOR USER_ID: " + user_id);
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
             var update = Builders<BsonDocument>.Update.Set("updated_at", GetTimestamp(DateTime.Now));
-            
-            var update_result = _dbUser.UpdateOne(filter, update);
-            
-            DB_Access += (int)update_result.ModifiedCount;
-            return update_result.ToBsonDocument();  
-        }
 
+            var update_result = _dbUser.UpdateOne(filter, update);
+
+            DB_Access += (int)update_result.ModifiedCount;
+            return update_result.ToBsonDocument();
+        }
         public static Boolean DeleteUser_WithCache(int user_id)
         {
             var filter = Builders<BsonDocument>.Filter.Eq("user_id", user_id);
@@ -369,7 +418,6 @@ namespace DotNetCore
                 {
                     //Console.WriteLine("\nDeleted user {0} from db.", user_id);
                     DB_Access--;
-                    var _cacheQuery = _cacheUser.DeleteOne(filter);
                     var _InREDIS = _redis_cache.Get(user_id.ToString());
                     if (_InREDIS != null)
                     {
@@ -414,16 +462,58 @@ namespace DotNetCore
             for (int i = 0; i < N; i++)
             {
                 if (i < insertEnd) ops[i] = 0; else if (i < updateEnd) ops[i] = 1; else if (i < deleteEnd) ops[i] = 2; else ops[i] = 3;
-                idx[i] = (i < insertEnd) ? i : i % insertEnd;
+                idx[i] = (i < insertEnd) ? i + USER_COUNT : i % (insertEnd + USER_COUNT);
             }
             Shuffle(ops, idx);
             return Tuple.Create(ops, idx);
         }
-        
-        public static String GetTimestamp(DateTime value) {
+
+        public static String GetTimestamp(DateTime value)
+        {
             return value.ToString("yyyyMMddHHmmssffff");
         }
-
+        public static BsonDocument UpdateUser(int user_id)
+        {
+            switch (MODE)
+            {
+                case MONGO_CACHE:
+                    return UpdateUser_WithCache(user_id);
+                case REDIS_CACHE:
+                    return UpdateUser_RedisCache(user_id);
+                case NO_CACHE:
+                    return UpdateUser_NoCache(user_id);
+                default:
+                    return null;
+            }
+        }
+        public static BsonDocument GetUser(int user_id)
+        {
+            switch (MODE)
+            {
+                case MONGO_CACHE:
+                    return GetUser_WithCache(user_id);
+                case REDIS_CACHE:
+                    return GetUser_RedisCache(user_id);
+                case NO_CACHE:
+                    return GetUser_NoCache(user_id);
+                default:
+                    return null;
+            }
+        }
+        public static Boolean DeleteUser(int user_id)
+        {
+            switch (MODE)
+            {
+                case MONGO_CACHE:
+                    return DeleteUser_WithCache(user_id);
+                case REDIS_CACHE:
+                    return DeleteUser_RedisCache(user_id);
+                case NO_CACHE:
+                    return DeleteUser_NoCache(user_id);
+                default:
+                    return false;
+            }
+        }
         /* 
         public class User : BsonDocument{
             public string user_name;
