@@ -31,8 +31,8 @@
 
 
 
-//         public static int InCACHE; 
-//         public static int InDB;
+//         public static int CACHE_Access; 
+//         public static int DB_Access;
         
 //         static void Main(string[] args)
 //         {
@@ -109,7 +109,7 @@
 //             */
             
 
-//             InDB = 0;   InCACHE = 0;
+//             DB_Access = 0;   CACHE_Access = 0;
 //             sw.Start();
 //             foreach(int id in getId_List){
 //                 //GetUser_NoCache(id);
@@ -118,7 +118,7 @@
 //             }
 //             sw.Stop();
 //             Console.WriteLine("\nTIME => {0}",sw.Elapsed);
-//             Console.WriteLine("IN DB: " + InDB + "  IN CACHE: " + InCACHE);
+//             Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
 
 //         }
 
@@ -129,7 +129,7 @@
 //             var _InREDIS = _redis_cache.Get(user_id.ToString());
 //             if(_InREDIS != null)
 //             {
-//                 InCACHE++;
+//                 CACHE_Access++;
 //                 //  Console.WriteLine("IN THE CACHE...\n");
 //                 return Encoding.UTF8.GetString(_InREDIS); 
 //             } 
@@ -140,7 +140,7 @@
 //                 var db_query = _dbUser.Find(filter);
 //                 if( (int)db_query.Count()>0)
 //                 {
-//                     InDB++;
+//                     DB_Access++;
 //                     String db_user_str = db_query.First().ToString();
 //                     //  Console.WriteLine("IN THE DATABASE...");
 //                     _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(db_user_str), new DistributedCacheEntryOptions());
@@ -164,13 +164,13 @@
 
 //             if((int)cache_query.Count()>0)
 //             {
-//                 InCACHE++;
+//                 CACHE_Access++;
 //                 //  Console.WriteLine("IN THE CACHE...\n");
 //                 return cache_query.First();  //.ToList() and .Count
 //             } 
 //             else 
 //             {
-//                 InDB++;
+//                 DB_Access++;
 //                 //  Console.WriteLine("NOT IN THE CACHE...");
 //                 var db_query = _dbUser.Find(filter);
 //                 if( (int)db_query.Count()>0)
@@ -209,7 +209,7 @@
 
 //             if((int)db_query.Count()>0)
 //             {
-//                 InDB++;
+//                 DB_Access++;
 //                 //  Console.WriteLine("IN THE DATABASE...\n");
 //                 return db_query.First();  
 //             } 
@@ -225,7 +225,7 @@
 //             String timestamp = GetTimestamp(DateTime.Now);
 //             var _InREDIS = _redis_cache.Get(user_id.ToString());
 //             if (_InREDIS != null) {
-//                 InCACHE++;
+//                 CACHE_Access++;
 //                 _redis_cache.Remove(user_id.ToString());
 //                 String user = Encoding.UTF8.GetString(_InREDIS);
 //                 BsonDocument db_user = BsonSerializer.Deserialize<BsonDocument>(user);
@@ -241,7 +241,7 @@
             
 //             if(_InREDIS == null)
 //             {
-//                 InDB += (int)db_update_result.ModifiedCount;
+//                 DB_Access += (int)db_update_result.ModifiedCount;
 //             } 
 //             return db_update_result.ToBsonDocument();
 //         }
@@ -256,13 +256,13 @@
             
 //             if(cache_update_result.ModifiedCount > 0)
 //             {
-//                 InCACHE += (int)cache_update_result.ModifiedCount;
+//                 CACHE_Access += (int)cache_update_result.ModifiedCount;
 //                 //  Console.WriteLine("IN THE CACHE...\n");
 //                 return cache_update_result.ToBsonDocument();  //.ToList() and .Count
 //             } 
 //             else
 //             {
-//                 InDB += (int)db_update_result.ModifiedCount;
+//                 DB_Access += (int)db_update_result.ModifiedCount;
 //                 //  Console.WriteLine("NOT IN THE CACHE...");
 //                 return db_update_result.ToBsonDocument();
 //             }
@@ -275,7 +275,7 @@
             
 //             var update_result = _dbUser.UpdateOne(filter, update);
             
-//             InDB += (int)update_result.ModifiedCount;
+//             DB_Access += (int)update_result.ModifiedCount;
 //             return update_result.ToBsonDocument();  
 //         }
 
