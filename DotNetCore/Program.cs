@@ -34,110 +34,110 @@ namespace DotNetCore
         {
 
             _dbClient = new MongoClient("mongodb://localhost:27020");
-            _db = _dbClient.GetDatabase("userdb");
-            _dbUser = _db.GetCollection<BsonDocument>("db_test");
+            _db = _dbClient.GetDatabase("userdb1");
+            _dbUser = _db.GetCollection<BsonDocument>("db_test1");
 
             _cacheClient = new MongoClient("mongodb://localhost:27018");
-            _cache = _cacheClient.GetDatabase("userdb");
-            _cacheUser = _cache.GetCollection<BsonDocument>("db_test");
+            _cache = _cacheClient.GetDatabase("userdb1");
+            _cacheUser = _cache.GetCollection<BsonDocument>("db_test2");
 
             _redis_cache = new RedisCache(new RedisCacheOptions
-            { Configuration = "localhost", InstanceName = "db_test" }
+            { Configuration = "localhost", InstanceName = "db_test4112" }
             );
 
             /*******************************************************************/
 
-            int N=10000;
-            Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
-            int[] opArray=test.Item1;
-            int[] idxArray=test.Item2;
+            // int N=10000;
+            // Tuple<int[],int[]> test=CreateOperationsList(N,0.5f,0.2f,0.1f);
+            // int[] opArray=test.Item1;
+            // int[] idxArray=test.Item2;
 
-            Stopwatch stopWatch = new Stopwatch();
-            int[] count=new int[4];
+            // Stopwatch stopWatch = new Stopwatch();
+            // int[] count=new int[4];
 
-            Console.WriteLine("Running {0} records randomly", N);
-            CACHE_Access = 0;
-            DB_Access = 0;
+            // Console.WriteLine("Running {0} records randomly", N);
+            // CACHE_Access = 0;
+            // DB_Access = 0;
 
-            for(int index = 0; index < opArray.Length; index++){
+            // for(int index = 0; index < opArray.Length; index++){
 
-                if(opArray[index]==0){
-                    var new_user_document = new BsonDocument{ { "name", "user" + idxArray[index] }, { "user_id", idxArray[index] }};
-                    stopWatch.Start();
-                    AddUser(new_user_document);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==1){
-                    stopWatch.Start();
-                    //UpdateUser_NoCache(idxArray[index]);
-                    UpdateUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==2){
-                    stopWatch.Start();
-                    //DeleteUser_NoCache(idxArray[index]);
-                    DeleteUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
-                else if(opArray[index]==3){
-                    stopWatch.Start();
-                    //GetUser_NoCache(idxArray[index]);
-                    GetUser_WithCache(idxArray[index]);
-                    stopWatch.Stop();
-                }
+            //     if(opArray[index]==0){
+            //         var new_user_document = new BsonDocument{ { "name", "user" + idxArray[index] }, { "user_id", idxArray[index] }};
+            //         stopWatch.Start();
+            //         AddUser(new_user_document);
+            //         stopWatch.Stop();
+            //     }
+            //     else if(opArray[index]==1){
+            //         stopWatch.Start();
+            //         //UpdateUser_NoCache(idxArray[index]);
+            //         UpdateUser_WithCache(idxArray[index]);
+            //         stopWatch.Stop();
+            //     }
+            //     else if(opArray[index]==2){
+            //         stopWatch.Start();
+            //         //DeleteUser_NoCache(idxArray[index]);
+            //         DeleteUser_WithCache(idxArray[index]);
+            //         stopWatch.Stop();
+            //     }
+            //     else if(opArray[index]==3){
+            //         stopWatch.Start();
+            //         //GetUser_NoCache(idxArray[index]);
+            //         GetUser_WithCache(idxArray[index]);
+            //         stopWatch.Stop();
+            //     }
 
-                count[opArray[index]]++;
-            }
+            //     count[opArray[index]]++;
+            // }
 
-            TimeSpan fullTime = stopWatch.Elapsed;
+            // TimeSpan fullTime = stopWatch.Elapsed;
 
-            Console.WriteLine("FULLTIME: " + fullTime.TotalMilliseconds);
-            Console.WriteLine("Insert:{0}  Update:{1}  Delete:{2}  Find:{3}",count[0], count[1], count[2], count[3]);
-            Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
+            // Console.WriteLine("FULLTIME: " + fullTime.TotalMilliseconds);
+            // Console.WriteLine("Insert:{0}  Update:{1}  Delete:{2}  Find:{3}",count[0], count[1], count[2], count[3]);
+            // Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
 
             /*******************************************************************/
 
-            /*
+            
             Random rnd = new Random();
             int getIndexes = rnd.Next(1, 100);
             //int setIndexes = rnd.Next(1, 1000); 
 
             List<int> getId_List = new List<int>();
 
-            for (int times = 0; times < 10000; times++)
+            for (int times = 0; times < 100000; times++)
             {
                 int random = rnd.Next(1, 100);
                 getId_List.Add(random);
             }
 
-            Stopwatch stopwatch_add = new Stopwatch();
-            stopwatch_add.Start();
-            for (int id = 1; id <= 10000; id++)
-            {
-                var new_doc = new BsonDocument
-                {
-                    { "name", "bibi"+id },
-                    { "user_id", id }
-                };
-                AddUser(new_doc);
-            }
-            stopwatch_add.Stop();
-            Console.WriteLine("ADD USERS CONTINOUSLY FOR ID 0 to 10000 TIME: {0}", stopwatch_add.Elapsed);
+            // Stopwatch stopwatch_add = new Stopwatch();
+            // stopwatch_add.Start();
+            // for (int id = 1; id <= 1000; id++)
+            // {
+            //     var new_doc = new BsonDocument
+            //     {
+            //         { "name", "bibi"+id },
+            //         { "user_id", id }
+            //     };
+            //     AddUser(new_doc);
+            // }
+            // stopwatch_add.Stop();
+            // Console.WriteLine("ADD USERS CONTINOUSLY FOR ID 0 to 1000 TIME: {0}", stopwatch_add.Elapsed);
 
             DB_Access = 0; CACHE_Access = 0;
     	    Stopwatch stopwatch_get = new Stopwatch();
             stopwatch_get.Start();
             foreach (int id in getId_List)
             {
-                //GetUser_RedisCache(id);
-                //GetUser_NoCache(id);
-                GetUser_WithCache(id);
+                GetUser_RedisCache(id);
+                // GetUser_NoCache(id);
+                // GetUser_WithCache(id);
                 //GetUserAsync_WithCache(id);
             }
             stopwatch_get.Stop();
             Console.WriteLine("\nTIME => {0}", stopwatch_get.Elapsed);
             Console.WriteLine("IN DB: " + DB_Access + "  IN CACHE: " + CACHE_Access);
-            */
+            
         }
 
         public static BsonDocument GetUser_RedisCache(int user_id)
@@ -146,7 +146,8 @@ namespace DotNetCore
             if (_InREDIS != null)
             {
                 CACHE_Access++;
-                return Encoding.UTF8.GetString(_InREDIS).ToBsonDocument();
+                // return Encoding.UTF8.GetString(_InREDIS).ToBsonDocument();
+                return new BsonDocument();
             }
             else
             {
@@ -157,7 +158,8 @@ namespace DotNetCore
                 {
                     String db_user_str = db_query.First().ToString();
                     _redis_cache.Set(user_id.ToString(), Encoding.UTF8.GetBytes(db_user_str), new DistributedCacheEntryOptions());
-                    return db_user_str.ToBsonDocument();
+                    // return db_user_str.ToBsonDocument();
+                    return new BsonDocument();
                 }
                 else
                 {
@@ -211,7 +213,6 @@ namespace DotNetCore
             DB_Access++;
             if ((int)db_query.Count() > 0)
             {
-                DB_Access++;
                 return db_query.First();
             }
             else
